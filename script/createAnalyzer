@@ -1,0 +1,109 @@
+<?php
+/*
+ * Copyright 2012-2019 Damien Seguy – Exakat SAS <contact(at)exakat.io>
+ * This file is part of Exakat.
+ *
+ * Exakat is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Exakat is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Exakat.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * The latest code can be found at <http://exakat.io/>.
+ *
+*/
+
+
+$analyzer = $argv[1];
+
+if (!preg_match('#^([A-Z][a-zA-Z0-9]*)/([A-Z][a-zA-Z0-9]*)$#is', $analyzer, $parts)) {
+    print "Usage : createAnalyzer <Dir>/<Analyzer>\n";
+    
+    $dirs = glob('Analyzer/*', GLOB_ONLYDIR);
+    $dirs = array_map(function ($dir) { 
+        return str_replace('Analyzer/', '', $dir); 
+    }, $dirs);
+    print "Dirs : ".implode(', ', $dirs)."\n";
+    die();
+}
+
+list(,$category, $name) = $parts;
+
+if (!file_exists('Analyzer/'.$category)) {
+    print "Usage : createAnalyzer <Dir>/<Analyzer>\n";
+    print "Dir $category doesn't exists\n";
+    
+    $dirs = glob('Analyzer/*', GLOB_ONLYDIR);
+    $dirs = array_map(function ($dir) { 
+        return str_replace('Analyzer/', '', $dir); 
+    }, $dirs);
+    print "Dirs : ".implode(', ', $dirs)."\n";
+    die();
+}
+
+if (file_exists('Analyzer/'.$category.'/'.$name.'.php')) {
+    print "Usage : createAnalyzer <Dir>/<Analyzer>\n";
+    print "Analyzer $category/$name already exists\n";
+    
+    die();
+}
+
+// create class in library/Exakat/Analyzer
+$php = '<?'. <<<PHP
+php
+
+namespace Exakat\\Analyzer\\$category;
+
+use Exakat\Analyzer\Analyzer;
+
+class $name extends Analyzer {
+    /* Remove this if useless
+    public function dependsOn() {
+        return array('MethodDefinition');
+    }
+    */
+    
+    public function analyze() {
+        \$this->atomIs('Identifier')
+             ->back('first');
+        \$this->printQuery();
+        \$this->prepareQuery();
+    }
+}
+
+?>
+
+PHP;
+
+file_put_contents("Analyzer/$analyzer.php", $php);
+print "php exakat analyze -p project -P $analyzer -v\n";
+
+// add documentation
+$ini = <<<INI
+name = "$analyzer";
+description = "";
+clearphp = "";
+severity = "S_MINOR";
+; from : S_NONE, S_MINOR, S_MAJOR, S_CRITICAL
+timetofix = "T_QUICK";
+; from : T_INSTANT, T_QUICK, T_SLOW
+
+; Alternative to make this code go away. 
+; One by possible solution
+modifications[] = ""
+
+; A PHP error that may be emitted by the target faulty code
+;phpError[] = ""
+
+INI;
+
+file_put_contents("human/en/$analyzer.ini", $ini);
+
+?>
