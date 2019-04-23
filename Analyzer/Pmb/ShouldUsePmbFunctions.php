@@ -6,7 +6,7 @@ use Exakat\Analyzer\Analyzer;
 
 class ShouldUsePmbFunctions extends Analyzer {
     public function analyze() {
-        $pmb = $this->loadIni('pmb.ini', 'misc');
+        $pmb = $this->loadIni('pmb_functions.ini', 'misc');
         $pmb = makeFullNsPath($pmb);
 
         // $a = str_replace();
